@@ -178,7 +178,6 @@ class Environment:
             rand=np.random.random()
             pos=n,m
             if(Gmin<ni<Gmax and rand<pDiv):
-            if(Gmin<ni<Gmax):
                 self.reproduction(pos)
          
          
@@ -406,8 +405,8 @@ class Particle:
 def scheduler(N=500, M=500, pp=0.028656, maxN=250, maxM=250, radgen=50, 
               const=0.9, sigma=0.65,
               SO=10, tcSO=5000, newSO=25, SA=np.pi/4, RA=np.pi/4, 
-              steps=100, intervals=100,
-              plot=True, animate=False):
+              steps=100, intervals=2500,
+              plot=False, animate=True):
               #metro: pp=0.028656, SO=10, newSO=25
               #train: pp=0.023932, SO=15, newSO=35
     '''   
@@ -420,7 +419,7 @@ def scheduler(N=500, M=500, pp=0.028656, maxN=250, maxM=250, radgen=50,
 
     Env = Environment(N, M, pp, maxN, maxM, radgen)
     bk = Image.open('Images/metro_oscuro.png','r')
-    bkf= Image.open('Images/metro_baw-3.png','r')
+    bkf= Image.open('Images/metro_baw.png','r')
     bktr = bkf.transpose(method=Image.FLIP_LEFT_RIGHT)
     bktr = bktr.transpose(Image.ROTATE_90)
 
@@ -475,19 +474,30 @@ def scheduler(N=500, M=500, pp=0.028656, maxN=250, maxM=250, radgen=50,
         fig = plt.figure(figsize=(8,8),dpi=100);
         ax = fig.add_subplot(111);
         for i in range(steps):
-            Env.diffusion_operator(const,sigma)
+            if (i==tcSO):
+                SO=newSO
+                Env.populate_again(SA, RA, SO)
+            Env.deposit_food(bktr)
+            Env.light(bktr)
+            Env.diffusion_operator(const, sigma)            
             Env.motor_stage()
             Env.sensory_stage()
+            
+            cmap2=  mpl.colors.LinearSegmentedColormap.from_list('my_cmap2',['gold', 'blue'],256)
+            cmap2._init()
+            alphas = np.linspace(0, 30, cmap2.N+3) 
+            cmap2._lut[:,-1] = alphas
+            im1=plt.imshow(bk, extent=[0, N, M, 0])
+            im2=plt.imshow(Env.trail_map, cmap=cmap2)               
             txt = plt.text(0,-25,'iteration: {}    SA: {:.2f}    SO: {}    RA: {:.2f}    %pop: {:.2f}%'.format(i,np.degrees(SA),SO,np.degrees(RA),pp*100));
-            im = plt.imshow(Env.trail_map, animated=True);
-            ims.append([im,txt])
-        fig.suptitle('Chemoattractant Map');
+            ims.append([im1,im2,txt])
+            
         ani = animation.ArtistAnimation(fig,ims,interval=50,blit=True,repeat_delay=1000);
-        ani.save('sim.gif');
+        ani.save('metro.gif');
         
              
 def main():
-    scheduler(steps=20000)
+    scheduler(steps=25000)
     return 0
     
     
